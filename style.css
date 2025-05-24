@@ -1,0 +1,699 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+
+/* Login Page */
+.login-page-body {
+    background-color: #e2dd3f;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.login-container {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    width: 350px;
+    max-width: 90%;
+    margin: 20px auto;
+}
+
+.login-container h1 {
+    color: #74cc66;
+    margin-bottom: 25px;
+    font-size: 2em;
+}
+
+.login-container h2 {
+    /* Added specific style for Sign In h2 */
+    color: #555;
+    margin-bottom: 20px;
+    font-size: 1.5em;
+}
+
+
+.signin-form input[type="text"],
+.signin-form input[type="password"] {
+    width: calc(100% - 20px);
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1em;
+}
+
+.signin-form button[type="submit"] {
+    background-color: #74cc66;
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.1em;
+    width: 100%;
+}
+
+.signin-form button[type="submit"]:hover {
+    background-color: #61b356;
+}
+
+.or-separator {
+    margin: 30px 0;
+    color: #888;
+    position: relative;
+}
+
+.or-separator::before,
+.or-separator::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 40%;
+    height: 1px;
+    background-color: #ddd;
+}
+
+.or-separator::before {
+    left: 0;
+}
+
+.or-separator::after {
+    right: 0;
+}
+
+.social-signup {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.social-icon {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background-color: #eee;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+    overflow: hidden;
+    /* Ensure image doesn't overflow rounded icon */
+}
+
+.social-icon img {
+    width: 100%;
+    /* Make image fill the icon */
+    height: 100%;
+    object-fit: cover;
+    /* Cover the area, cropping if necessary */
+}
+
+/* Keeping original social icon hover colors as they are standard and recognizable */
+.social-icon.email:hover {
+    background-color: #f44336;
+}
+
+
+.signup-prompt {
+    font-size: 0.9em;
+}
+
+.signup-prompt a {
+    color: #74cc66;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.signup-prompt a:hover {
+    text-decoration: underline;
+}
+
+
+
+.back-to-login-prompt {
+    margin-top: 25px;
+    font-size: 0.9em;
+}
+
+.back-to-login-prompt a {
+    color: #74cc66;
+    /* Primary Green */
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.back-to-login-prompt a:hover {
+    text-decoration: underline;
+}
+/* START: Signup Page Specific Styles */
+/* These styles will still apply to signup.html if it uses signup-page-body and signup-container */
+.signup-page-body {
+    background-color: #e2dd3f;
+    /* Consistent with login page background */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.signup-container {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    width: 380px;
+    max-width: 90%;
+    /* Added for consistency with login-container */
+    margin: 20px auto;
+}
+
+.signup-form input[type="text"],
+.signup-form input[type="email"],
+.signup-form input[type="password"] {
+    width: calc(100% - 20px);
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1em;
+}
+
+.signup-form button[type="submit"] {
+    background-color: #74cc66;
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.1em;
+    width: 100%;
+}
+
+.signup-form button[type="submit"]:hover {
+    background-color: #61b356;
+}
+
+.login-prompt {
+    margin-top: 20px;
+    font-size: 0.9em;
+}
+
+.login-prompt a {
+    color: #74cc66;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.login-prompt a:hover {
+    text-decoration: underline;
+}
+
+/* END: Signup Page Specific Styles */
+
+
+/*
+    The following sections (Dashboard, Create/Edit Note, View Note)
+    are retained from your previous request.
+    They assume the presence of .main-header and .main-container.
+    These styles will NOT apply to index.html with its current structure,
+    but WILL apply to other pages that use them.
+*/
+
+/* START: Common Styles (for other pages using header/main-container) */
+.main-header {
+    background-color: #74cc66;
+    /* Primary Green */
+    color: white;
+    padding: 15px 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.main-header nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.main-header .logo {
+    font-size: 1.8em;
+    font-weight: bold;
+}
+
+.main-header .user-info {
+    font-size: 1em;
+    margin-right: auto;
+    margin-left: 20px;
+}
+
+.main-header a {
+    color: white;
+    text-decoration: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.main-header a:hover {
+    background-color: #61b356;
+}
+
+.main-container {
+    max-width: 1200px;
+    margin: 20px auto;
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+/* END: Common Styles (for other pages) */
+
+/* START: Dashboard Page Specific Styles */
+.dashboard-page-body .main-container {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    gap: 20px;
+    padding: 20px;
+}
+
+.dashboard-section {
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    grid-column: 2 / 3;
+}
+
+.create-new-note-btn {
+    background-color: #74cc66;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    margin-bottom: 20px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.create-new-note-btn:hover {
+    background-color: #61b356;
+}
+
+.notes-display-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+    margin-top: 10px;
+    margin-bottom: 30px;
+}
+
+.note-card {
+    background-color: #e0e0e0;
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.note-card.hidden {
+    display: none;
+}
+
+.note-card p {
+    margin: 0;
+    flex-grow: 1;
+}
+
+.note-card a {
+    text-decoration: none;
+    color: #333;
+    font-weight: bold;
+}
+
+.note-card a:hover {
+    text-decoration: underline;
+}
+
+.note-card .views {
+    font-size: 0.8em;
+    color: #666;
+    margin-right: 10px;
+}
+
+.note-card .lock-icon::before {
+    content: '🔒';
+    margin-left: 5px;
+    font-size: 0.9em;
+}
+
+.note-card .note-actions button {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.8em;
+    margin-left: 5px;
+}
+
+.note-card .note-actions button:hover {
+    background-color: #ddd;
+}
+
+.note-card .delete-note-btn {
+    background-color: #ffcdd2;
+    color: #d32f2f;
+}
+
+.note-card .delete-note-btn:hover {
+    background-color: #ef9a9a;
+}
+
+
+.right-panel {
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    grid-column: 3 / 4;
+}
+
+.search-bar {
+    display: flex;
+    margin-bottom: 20px;
+}
+
+.search-bar input {
+    flex-grow: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 5px 0 0 5px;
+}
+
+.search-bar button {
+    background-color: #74cc66;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 0 5px 5px 0;
+    cursor: pointer;
+}
+
+.search-bar button:hover {
+    background-color: #61b356;
+}
+
+.tag-input-group {
+    display: flex;
+    margin-bottom: 20px;
+}
+
+.tag-input-group input {
+    flex-grow: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 5px 0 0 5px;
+}
+
+.tag-input-group button {
+    background-color: #74cc66;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 0 5px 5px 0;
+    cursor: pointer;
+}
+
+.tag-input-group button:hover {
+    background-color: #61b356;
+}
+
+
+.tags-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.tag-btn {
+    background-color: #aed581;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.8em;
+    transition: background-color 0.2s, transform 0.2s;
+    white-space: nowrap;
+}
+
+.tag-btn:hover {
+    background-color: #9ccc65;
+    transform: translateY(-2px);
+}
+
+.tag-btn.active {
+    background-color: #74cc66;
+    color: white;
+    font-weight: bold;
+}
+
+
+.popular-notes-section {
+    margin-top: 30px;
+}
+
+.popular-notes-list {
+    margin-top: 15px;
+}
+
+.popular-note-item {
+    background-color: #e0e0e0;
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    font-size: 0.9em;
+    line-height: 1.3;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.popular-note-item p {
+    margin: 0;
+}
+
+.popular-note-item a {
+    text-decoration: none;
+    color: #333;
+    font-weight: bold;
+}
+
+.popular-note-item a:hover {
+    text-decoration: underline;
+}
+
+/* END: Dashboard Page Specific Styles */
+
+/* START: Create/Edit Note Page Styles */
+.create-note-page-body .main-container,
+.edit-note-page-body .main-container {
+    justify-content: center;
+    padding: 20px;
+}
+
+.create-note-section,
+.edit-note-section {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 700px;
+    box-sizing: border-box;
+}
+
+.create-note-section h1,
+.edit-note-section h1 {
+    color: #74cc66;
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #555;
+}
+
+.form-group input[type="text"],
+.form-group textarea,
+.form-group select {
+    width: calc(100% - 22px);
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1em;
+    box-sizing: border-box;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 150px;
+}
+
+.save-note-btn {
+    background-color: #74cc66;
+    color: white;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.1em;
+    width: 100%;
+    box-sizing: border-box;
+    transition: background-color 0.3s ease;
+}
+
+.save-note-btn:hover {
+    background-color: #61b356;
+}
+
+/* View Note Page */
+.view-note-page-body .main-container {
+    justify-content: center;
+    padding: 20px;
+}
+
+.view-note-section {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 800px;
+    box-sizing: border-box;
+}
+
+.view-note-content h2 {
+    color: #74cc66;
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 2em;
+}
+
+.note-tags-display {
+    font-style: italic;
+    color: #555;
+    margin-bottom: 15px;
+    font-size: 0.9em;
+}
+
+.view-note-content pre {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 5px;
+    border: 1px solid #eee;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    line-height: 1.6;
+    color: #333;
+}
+
+.note-actions-bottom .action-btn {
+    background-color: #74cc66;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    margin-right: 10px;
+    transition: background-color 0.3s ease;
+}
+
+.note-actions-bottom .action-btn:hover {
+    background-color: #61b356;
+}
+
+.note-actions-bottom .report-btn {
+    background-color: #ffcdd2;
+    color: #d32f2f;
+}
+
+.note-actions-bottom .report-btn:hover {
+    background-color: #ef9a9a;
+}
+
+.report-confirm-section {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid #e2dd3f;
+    background-color: #fffde7;
+    border-radius: 5px;
+    text-align: center;
+}
+
+.report-confirm-section p {
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+.report-confirm-section button {
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 0 5px;
+    font-size: 0.9em;
+}
+
+.report-confirm-section .confirm-btn {
+    background-color: #74cc66;
+    color: white;
+    border: none;
+}
+
+.report-confirm-section .confirm-btn:hover {
+    background-color: #61b356;
+}
+
+.report-confirm-section .block-btn {
+    background-color: #e2dd3f;
+    color: #333;
+    border: 1px solid #e2dd3f;
+}
+
+.report-confirm-section .block-btn:hover {
+    background-color: #d4cf36;
+}
+
+.report-confirm-section .cancel-report-btn {
+    background-color: #ccc;
+    color: #333;
+    border: 1px solid #bbb;
+}
+
+.report-confirm-section .cancel-report-btn:hover {
+    background-color: #bbb;
+}

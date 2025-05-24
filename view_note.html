@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Note Share - View Note</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="view-note-page-body">
+
+    <header class="main-header">
+        <div class="logo">Note Share</div>
+        <nav>
+            <a href="dashboard.html" class="back-to-dashboard-btn">Back to Dashboard</a>
+            <a href="index.html" class="logout-btn">Logout</a>
+        </nav>
+    </header>
+
+    <div class="main-container">
+        <div class="view-note-section">
+            <div class="view-note-content">
+                <h2 id="noteTitleDisplay">Loading Note...</h2>
+                <p id="noteTagsDisplay" class="note-tags-display"></p>
+                <pre id="noteContentDisplay">Note content will appear here.</pre>
+            </div>
+
+            <div class="note-actions-bottom">
+                <button id="copyNoteBtn" class="action-btn">Copy Note to Dashboard</button>
+                <button id="reportNoteBtn" class="action-btn report-btn">Report this note?</button>
+            </div>
+
+            <div id="reportConfirmSection" class="report-confirm-section" style="display:none;">
+                <p>Are you sure you want to report this note?</p>
+                <button class="confirm-btn">Confirm</button>
+                <button class="block-btn">Confirm and block user</button>
+                <button class="cancel-report-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

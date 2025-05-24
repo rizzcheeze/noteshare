@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Note Share - Create Note</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="create-note-page-body">
+
+    <header class="main-header">
+        <nav>
+            <div class="logo">Note Share</div>
+            <a href="dashboard.html" class="back-to-dashboard-btn">Back to Dashboard</a>
+            <a href="index.html" class="logout-btn">Logout</a>
+        </nav>
+    </header>
+
+    <div class="main-container">
+        <div class="create-note-section">
+            <h1>Create a New Note</h1>
+            <form id="createNoteForm">
+                <div class="form-group">
+                    <label for="noteTitle">Title:</label> <input type="text" id="noteTitle" name="noteTitle"
+                        placeholder="Enter note title" required>
+                </div>
+                <div class="form-group">
+                    <label for="noteContent">Content:</label> <textarea id="noteContent" name="noteContent" rows="10"
+                        placeholder="Write your note content here..." required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="noteTags">Tags (comma-separated):</label> <input type="text" id="noteTags"
+                        name="noteTags" placeholder="e.g., school, history, research">
+                </div>
+                <div class="form-group">
+                    <label for="noteVisibility">Visibility:</label>
+                    <select id="noteVisibility" name="noteVisibility">
+                        <option value="private">Private</option>
+                        <option value="public">Public</option>
+                    </select>
+                </div>
+                <button type="submit" class="save-note-btn">Create Note</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
