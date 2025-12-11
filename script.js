@@ -1,369 +1,482 @@
+const firebaseConfig = {
+    apiKey: "AIzaSyBjq2FvfW76fCF-pfZSAtvHUvQZkJ47RXI",
+    authDomain: "noteshare-f6ea3.firebaseapp.com",
+    databaseURL: "https://noteshare-f6ea3-default-rtdb.firebaseio.com",
+    projectId: "noteshare-f6ea3",
+    storageBucket: "noteshare-f6ea3.firebasestorage.app",
+    messagingSenderId: "701972757970",
+    appId: "1:701972757970:web:8a2296c96639c7b087dc0b",
+    measurementId: "G-ZNXPHYRGR0"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let currentUserProfile = null;
+let publicNotesGrid = null;
+let privateNotesGrid = null;
+let domIsLoaded = false;
+
 function getUrlParameter(name) {
-    name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
-    var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+    name = name.replace(/[\\[]/, '\\\\[').replace(/[\\]]/, '\\\\]');
+    var regex = new RegExp('[\\\\?&]' + name + '=([^&#]*)');
     var results = regex.exec(location.search);
     return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    const dashboardBtn = document.querySelector('.back-to-dashboard-btn');
-    if (dashboardBtn) {
-        dashboardBtn.addEventListener('click', function(event) {
+// Function to delete a note (MOVED TO GLOBAL SCOPE)
+function deleteNote(noteId) {
+    db.collection('notes').doc(noteId).delete()
+        .then(() => {
+            alert('Note deleted successfully!');
+            const user = auth.currentUser;
+            if (user) {
+                fetchAndDisplayNotes(user);
+            } else {
+                // Refresh public notes if no user is logged in
+                fetchAndDisplayNotes(null);
+            }
+        })
+        .catch(error => {
+            console.error('Error removing note: ', error);
+            alert('Error deleting note: ' + error.message);
+        });
+}
+
+function renderNotes(snapshot, gridElement, user) {
+    gridElement.innerHTML = '';
+    if (snapshot.empty) {
+        const isPublicContext = gridElement.id === 'publicNotesGrid';
+        gridElement.innerHTML = `<p>No ${isPublicContext ? 'public' : 'private'} notes available yet.</p>`;
+    }
+    snapshot.forEach(doc => {
+        const note = doc.data();
+        const noteId = doc.id;
+        const noteElement = document.createElement('div');
+        noteElement.classList.add('note-card');
+
+        const isAnonymous = note.isAnonymous === true;
+        const displayAuthor = isAnonymous ? 'Anonymous' : (note.authorUsername || note.authorEmail || 'Unknown User');
+
+        const displayContent = note.content.length > 150 ? note.content.substring(0, 150) + '...' : note.content;
+
+        // Check for 'user' and 'note.userId' before rendering edit/delete buttons
+        noteElement.innerHTML = `
+            <h3>${note.title}</h3>
+            <p>${displayContent}</p>
+            <p class="note-tags">Tags: ${note.tags ? note.tags.join(', ') : 'None'}</p>
+            <p class="note-info">Last Updated: ${note.timestamp ? new Date(note.timestamp.toDate()).toLocaleString() : 'N/A'}</p>
+            <p class="note-author">Author: ${displayAuthor}</p>
+            <div class="note-actions">
+                <a href="view_note.html?id=${noteId}" class="view-note-btn">View</a>
+                ${!isAnonymous && user && note.userId === user.uid ? `<a href="edit_note.html?id=${noteId}" class="edit-note-btn">Edit</a>` : ''}
+                ${!isAnonymous && user && note.userId === user.uid ? `<button class="delete-note-btn" data-id="${noteId}">Delete</button>` : ''}
+            </div>
+        `;
+        gridElement.appendChild(noteElement);
+    });
+
+    gridElement.querySelectorAll('.delete-note-btn').forEach(button => {
+        button.addEventListener('click', (event) => {
+            const noteIdToDelete = event.target.dataset.id;
+            if (confirm('Are you sure you want to delete this note?')) {
+                deleteNote(noteIdToDelete);
+            }
+        });
+    });
+}
+
+
+async function fetchAndDisplayNotes(user, searchTerm = '') {
+    // Ensure DOM elements are ready before trying to access them
+    if (!domIsLoaded || !publicNotesGrid || !privateNotesGrid) {
+        console.warn('DOM not fully loaded or grids not initialized yet. Deferring fetchAndDisplayNotes.');
+        return;
+    }
+
+    if (publicNotesGrid) publicNotesGrid.innerHTML = '';
+    if (privateNotesGrid) privateNotesGrid.innerHTML = '';
+    const tagsList = document.querySelector('.tags-list');
+
+    let publicNotesQuery = db.collection('notes')
+        .where('visibility', '==', 'public');
+
+    let privateNotesQuery; // Initialize only if user is logged in
+
+    if (user) { // Only set up privateNotesQuery if a user is provided
+        privateNotesQuery = db.collection('notes')
+            .where('userId', '==', user.uid)
+            .where('visibility', '==', 'private');
+    }
+
+
+    const lowerCaseSearchTerm = searchTerm.toLowerCase();
+
+    if (searchTerm) {
+        publicNotesQuery = publicNotesQuery.where('tags', 'array-contains', lowerCaseSearchTerm)
+                                         .orderBy('timestamp', 'desc');
+        // Only apply search to private query if it exists
+        if (privateNotesQuery) {
+            privateNotesQuery = privateNotesQuery.where('tags', 'array-contains', lowerCaseSearchTerm)
+                                                .orderBy('timestamp', 'desc');
+        }
+    } else {
+        publicNotesQuery = publicNotesQuery.orderBy('timestamp', 'desc');
+        // Only apply ordering to private query if it exists
+        if (privateNotesQuery) {
+            privateNotesQuery = privateNotesQuery.orderBy('timestamp', 'desc');
+        }
+    }
+
+    try {
+        const publicSnapshot = await publicNotesQuery.get();
+        let filteredPublicNotes = [];
+        publicSnapshot.forEach(doc => {
+            const note = doc.data();
+            const matchesSearch = searchTerm ?
+                (note.title && note.title.toLowerCase().includes(lowerCaseSearchTerm)) ||
+                (note.tags && note.tags.some(tag => tag.toLowerCase().includes(lowerCaseSearchTerm))) :
+                true;
+            if (matchesSearch) {
+                filteredPublicNotes.push(doc);
+            }
+        });
+        renderNotes({ forEach: callback => filteredPublicNotes.forEach(callback), empty: filteredPublicNotes.length === 0 }, publicNotesGrid, user);
+
+
+        if (user && privateNotesQuery) { // Only fetch private notes if 'user' is not null AND privateNotesQuery was set up
+            const privateSnapshot = await privateNotesQuery.get();
+            let filteredPrivateNotes = [];
+            privateSnapshot.forEach(doc => {
+                const note = doc.data();
+                const matchesSearch = searchTerm ?
+                    (note.title && note.title.toLowerCase().includes(lowerCaseSearchTerm)) ||
+                    (note.tags && note.tags.some(tag => tag.toLowerCase().includes(lowerCaseSearchTerm))) :
+                    true;
+                if (matchesSearch) {
+                    filteredPrivateNotes.push(doc);
+                }
+            });
+            renderNotes({ forEach: callback => filteredPrivateNotes.forEach(callback), empty: filteredPrivateNotes.length === 0 }, privateNotesGrid, user);
+        } else if (privateNotesGrid) {
+            // If no user or privateNotesQuery was not set, clear private notes grid
+            privateNotesGrid.innerHTML = '<p>Please log in to view your private notes.</p>';
+        }
+
+
+        const allTags = new Set();
+        publicSnapshot.forEach(doc => {
+            const note = doc.data();
+            if (note.tags && Array.isArray(note.tags)) {
+                note.tags.forEach(tag => allTags.add(tag.trim()));
+            }
+        });
+
+        if (user) {
+            // Re-fetch private notes specifically for tags, as the main query might be filtered.
+            // Or ideally, get tags from filteredPrivateNotes if you have them.
+            // For simplicity and correctness with current logic, re-query.
+            const privateTagsSnapshot = await db.collection('notes')
+                .where('userId', '==', user.uid)
+                .where('visibility', '==', 'private')
+                .get();
+            privateTagsSnapshot.forEach(doc => {
+                const note = doc.data();
+                if (note.tags && Array.isArray(note.tags)) {
+                    note.tags.forEach(tag => allTags.add(tag.trim()));
+                }
+            });
+        }
+
+        if (tagsList) {
+            tagsList.innerHTML = '';
+            allTags.forEach(tag => {
+                const tagElement = document.createElement('span');
+                tagElement.classList.add('tag-btn');
+                tagElement.textContent = tag;
+                tagElement.addEventListener('click', () => {
+                    document.getElementById('noteSearchInput').value = tag;
+                    fetchAndDisplayNotes(user, tag);
+                });
+                tagsList.appendChild(tagElement);
+            });
+        }
+
+
+    } catch (error) {
+        console.error("Error fetching notes:", error);
+        alert("Error loading notes: " + error.message);
+    }
+}
+
+
+auth.onAuthStateChanged(async (user) => {
+    if (user) {
+        console.log('User signed in:', user.email, user.uid);
+        const userInfoElement = document.querySelector('.user-info');
+
+        const userDocRef = db.collection('users').doc(user.uid);
+        const userDoc = await userDocRef.get();
+        let displayUserName = user.email;
+
+        if (userDoc.exists) {
+            currentUserProfile = userDoc.data();
+            displayUserName = currentUserProfile.username || user.email;
+        } else {
+            console.warn("User profile not found in Firestore for UID:", user.uid);
+            currentUserProfile = {
+                email: user.email,
+                username: user.email.split('@')[0],
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            await userDocRef.set(currentUserProfile, { merge: true });
+        }
+
+        if (userInfoElement) {
+            userInfoElement.textContent = `Welcome, ${displayUserName}!`;
+        }
+        // Call fetchAndDisplayNotes ONLY when auth state is known AND DOM is ready
+        if (domIsLoaded) {
+            fetchAndDisplayNotes(user);
+        }
+    } else {
+        currentUserProfile = null;
+        console.log('User signed out');
+        if (window.location.pathname.includes('dashboard.html') ||
+            window.location.pathname.includes('create_note.html') ||
+            window.location.pathname.includes('edit_note.html') ||
+            window.location.pathname.includes('view_note.html')) {
+            window.location.href = 'index.html';
+        }
+        // Call fetchAndDisplayNotes with null user to display public notes ONLY when DOM is ready
+        if (domIsLoaded) {
+            fetchAndDisplayNotes(null);
+        }
+    }
+});
+
+
+document.addEventListener('DOMContentLoaded', function () {
+    publicNotesGrid = document.getElementById('publicNotesGrid');
+    privateNotesGrid = document.getElementById('privateNotesGrid');
+    domIsLoaded = true;
+
+    // IMPORTANT: Removed the direct call to fetchAndDisplayNotes from here.
+    // It is now handled exclusively by auth.onAuthStateChanged
+    // to ensure the user's authentication state is fully determined before fetching notes.
+
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', function (event) {
             event.preventDefault();
-            window.location.href = 'dashboard.html';
+            const email = loginForm.elements.username.value;
+            const password = loginForm.elements.password.value;
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    alert('Logged in successfully!');
+                    window.location.href = 'dashboard.html';
+                })
+                .catch((error) => {
+                    const errorCode = error.code;
+                    const errorMessage = error.message;
+                    alert(`Login failed: ${errorMessage}`);
+                    console.error("Login Error:", errorCode, errorMessage);
+                });
+        });
+    }
+
+    const signupForm = document.getElementById('signupForm');
+    if (signupForm) {
+        signupForm.addEventListener('submit', async function (event) {
+            event.preventDefault();
+            const email = signupForm.elements.email.value;
+            const username = signupForm.elements.username.value;
+            const password = signupForm.elements.password.value;
+            const confirmPassword = signupForm.elements.confirmPassword.value;
+
+            if (password !== confirmPassword) {
+                alert('Passwords do not match!');
+                return;
+            }
+
+            try {
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+
+                await db.collection('users').doc(user.uid).set({
+                    email: user.email,
+                    username: username,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                alert('Account created successfully! Please log in.');
+                window.location.href = 'index.html';
+            } catch (error) {
+                const errorCode = error.code;
+                const errorMessage = error.message;
+                alert(`Signup failed: ${errorMessage}`);
+                console.error("Signup Error:", errorCode, errorMessage);
+            }
         });
     }
 
     const logoutBtn = document.querySelector('.logout-btn');
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', function(event) {
+        logoutBtn.addEventListener('click', function (event) {
             event.preventDefault();
-            alert("Logged out! (Demo)");
-            window.location.href = 'index.html';
+            auth.signOut().then(() => {
+                alert("Logged out successfully!");
+                window.location.href = 'index.html';
+            }).catch((error) => {
+                console.error("Logout Error:", error);
+                alert("Error logging out: " + error.message);
+            });
         });
     }
 
-    //  Login Form
-    const loginForm = document.getElementById('loginForm');
-    if (loginForm) {
-        loginForm.addEventListener('submit', function(event) {
+    const dashboardBtn = document.querySelector('.back-to-dashboard-btn');
+    if (dashboardBtn) {
+        dashboardBtn.addEventListener('click', function (event) {
             event.preventDefault();
-            const username = loginForm.querySelector('input[name="username"]').value;
-            const password = loginForm.querySelector('input[name="password"]').value;
+            window.location.href = 'dashboard.html';
+        });
+    }
 
-            if (username && password) {
-                setTimeout(() => {
-                    window.location.href = 'dashboard.html';
-                }, 500);
+    const noteSearchForm = document.getElementById('noteSearchForm');
+    if (noteSearchForm) {
+        noteSearchForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            const searchTerm = document.getElementById('noteSearchInput').value.trim();
+            const user = auth.currentUser; // auth.currentUser might still be null here, but fetchAndDisplayNotes handles it if DOM is loaded
+            if (user) {
+                fetchAndDisplayNotes(user, searchTerm);
             } else {
-                alert("Please enter both username/email and password.");
+                fetchAndDisplayNotes(null, searchTerm);
             }
         });
     }
 
 
-    // Sign up form
-    const signupForm = document.getElementById('signupForm');
-    if (signupForm) {
-        signupForm.addEventListener('submit', function(event) {
+    const createNoteForm = document.getElementById('createNoteForm');
+    if (createNoteForm) {
+        createNoteForm.addEventListener('submit', function (event) {
             event.preventDefault();
-
-            const password = signupForm.querySelector('input[name="password"]').value;
-            const confirmPassword = signupForm.querySelector('input[name="confirmPassword"]').value;
-
-            if (password !== confirmPassword) {
-                alert("Passwords do not match!");
+            const user = auth.currentUser;
+            if (!user) {
+                alert('You must be logged in to create a note.');
                 return;
             }
 
-            alert("Account created successfully! Please sign in. (This is a demo)");
-            window.location.href = 'index.html';
-        });
-    }
-    
+            const authorUsername = currentUserProfile ? currentUserProfile.username : user.email.split('@')[0];
 
-
-    // Dashboard Page
-    // Dummy Note 
-    const allNotes = [
-        { id: 'brownie-recipe', title: 'Brownie recipe', content: `The ultimate fudgy brownie recipe!\n\n**Ingredients:**\n1 cup unsalted butter, melted\n2 cups granulated sugar\n4 large eggs\n1 teaspoon vanilla extract\n1 cup all-purpose flour\n¾ cup unsweetened cocoa powder\n½ teaspoon baking powder\n¼ teaspoon salt\n\n**Instructions:**\n1.) Preheat oven to 350°F (175°C). Grease and flour a 9x13 inch baking pan.\n2.) In a large bowl, combine melted butter and sugar. Beat in the eggs one at a time, then stir in the vanilla.\n3.) In a separate bowl, whisk together flour, cocoa powder, baking powder, and salt. Gradually stir into the wet ingredients until just combined.\n4.) Spread batter evenly into the prepared pan.\n5.) Bake for 20-25 minutes, or until a toothpick inserted into the center comes out with moist crumbs. Do not overbake!\n6.) Let cool completely before cutting into squares. Enjoy!`, views: 24, visibility: 'private', tags: ['recipe', 'food', 'dessert', 'baking'] },
-        { id: 'random-memos', title: 'Random memos', content: 'Remember to buy groceries. Call mom. Project deadline next week.', views: 0, visibility: 'private', tags: ['memos', 'personal', 'reminders'] },
-        { id: 'schedule', title: 'Weekly Schedule', content: 'Monday: Meeting at 9 AM. Tuesday: Gym. Wednesday: Study session. Thursday: Work on project. Friday: Relax!', views: 0, visibility: 'private', tags: ['schedule', 'planning', 'work'] },
-        { id: 'money-saving-tips', title: 'Money Saving Tips', content: `Here are some fantastic tips to save money:\n\n1.) Track your spending religiously. Knowledge is power!\n2.) Create a budget and stick to it. Give every dollar a job.\n3.) Cut unnecessary expenses like subscriptions you don't use.\n4.) Cook at home more often instead of eating out.\n5.) Plan your meals and grocery lists to avoid impulse buys.\n6.) Use cash for discretionary spending to feel the "pain" of parting with money.\n7.) Find cheaper alternatives for your hobbies or entertainment.\n8.) Automate savings transfers to build your emergency fund.\n9.) Review your bills regularly for potential savings.\n10.) Avoid debt as much as possible; interest costs you money.`, views: 150, visibility: 'public', tags: ['money', 'finance', 'life hacks'] },
-        { id: 'ice-cream-recipe', title: 'Delicious Ice Cream Recipe', content: "A simple yet delicious homemade vanilla ice cream recipe. You'll need milk, cream, sugar, and vanilla. No-churn methods also exist!", views: 80, visibility: 'public', tags: ['recipe', 'food', 'dessert', 'cooking'] },
-        { id: 'how-to-parent', title: 'How to be a Parent', content: "Parenting is a journey of learning. Key tips include consistent boundaries, active listening, and showing unconditional love. Every child is different!", views: 200, visibility: 'public', tags: ['parenting', 'life hacks', 'advice', 'family'] },
-        { id: 'study-tips', title: 'Effective Study Tips', content: 'Improve your grades with these simple study techniques: active recall, spaced repetition, and interleaving!', views: 50, visibility: 'public', tags: ['school', 'study', 'education', 'learning'] },
-        { id: 'gardening-basics', title: 'Gardening Basics', content: 'Start your own garden with these beginner tips: choose the right plants, prepare your soil, and water consistently.', views: 30, visibility: 'private', tags: ['hobby', 'garden', 'home'] }
-    ];
-
-    const publicNotesGrid = document.getElementById('publicNotesGrid');
-    const privateNotesGrid = document.getElementById('privateNotesGrid');
-
-    function renderNotes(notesToRender) {
-        if (!publicNotesGrid || !privateNotesGrid) return;
-
-        publicNotesGrid.innerHTML = '';
-        privateNotesGrid.innerHTML = '';
-
-        notesToRender.forEach(note => {
-            const noteCard = document.createElement('div');
-            noteCard.classList.add('note-card');
-            noteCard.dataset.noteId = note.id;
-
-            if (note.tags && note.tags.length > 0) {
-                noteCard.dataset.tags = note.tags.map(tag => tag.toLowerCase()).join(' ');
-            } else {
-                noteCard.dataset.tags = '';
-            }
-
-            const viewsHtml = note.views > 0 ? `<span class="views">${note.views}</span>` : '';
-            const lockIconHtml = note.visibility === 'private' ? `<span class="lock-icon"></span>` : '';
-
-            noteCard.innerHTML = `
-                ${viewsHtml}
-                ${lockIconHtml}
-                <p><a href="view_note.html?noteId=${note.id}">${note.title}</a></p>
-                <div class="note-actions">
-                    <button class="edit-note-btn" onclick="window.location.href='edit_note.html?noteId=${note.id}'">Edit</button>
-                    <button class="delete-note-btn" data-note-id="${note.id}">Delete</button>
-                </div>
-            `;
-
-            if (note.visibility === 'public') {
-                publicNotesGrid.appendChild(noteCard);
-            } else {
-                privateNotesGrid.appendChild(noteCard);
-            }
-        });
-    }
-
-    
-    if (publicNotesGrid && privateNotesGrid) {
-        renderNotes(allNotes);
-    }
-
-   
-    document.body.addEventListener('click', function(event) {
-        if (event.target.classList.contains('delete-note-btn')) {
-            const noteIdToDelete = event.target.dataset.noteId;
-            const confirmDelete = confirm(`Are you sure you want to delete note "${noteIdToDelete}"?`);
-            if (confirmDelete) {
-                const index = allNotes.findIndex(note => note.id === noteIdToDelete);
-                if (index !== -1) {
-                    allNotes.splice(index, 1);
-                    renderNotes(allNotes);
-                    alert(`Note "${noteIdToDelete}" deleted! (Demo)`);
-                }
-            }
-        }
-    });
-
-    // tag and note filtering
-    const noteSearchInput = document.getElementById('noteSearchInput');
-    const newTagInput = document.getElementById('newTagInput');
-    const addTagBtn = document.getElementById('addTagBtn');
-    const userTagsGrid = document.getElementById('userTagsGrid');
-
-    let activeTag = null;
-
-    function filterAndRenderNotes() {
-        const searchTerm = noteSearchInput ? noteSearchInput.value.toLowerCase() : '';
-        const filteredNotes = allNotes.filter(note => {
-            const noteTitle = note.title.toLowerCase();
-            const noteTags = note.tags.map(tag => tag.toLowerCase());
-
-            let matchesSearch = true;
-            if (searchTerm) {
-                matchesSearch = noteTitle.includes(searchTerm) || noteTags.some(tag => tag.includes(searchTerm));
-            }
-
-            let matchesTagFilter = true;
-            if (activeTag) {
-                matchesTagFilter = noteTags.includes(activeTag);
-            }
-
-            return matchesSearch && matchesTagFilter;
-        });
-        renderNotes(filteredNotes);
-    }
-
-    if (noteSearchInput) {
-        noteSearchInput.addEventListener('keyup', filterAndRenderNotes);
-    }
-
-    if (addTagBtn && newTagInput && userTagsGrid) {
-        addTagBtn.addEventListener('click', function() {
-            const newTagText = newTagInput.value.trim();
-            if (newTagText) {
-                const tagButton = document.createElement('button');
-                tagButton.classList.add('tag-btn');
-                tagButton.textContent = newTagText;
-                tagButton.dataset.tag = newTagText.toLowerCase();
-                userTagsGrid.appendChild(tagButton);
-                newTagInput.value = '';
-
-                tagButton.addEventListener('click', function() {
-                    if (activeTag === tagButton.dataset.tag) {
-                        activeTag = null;
-                        tagButton.classList.remove('active');
-                    } else {
-                        document.querySelectorAll('.tag-btn.active').forEach(btn => btn.classList.remove('active'));
-                        activeTag = tagButton.dataset.tag;
-                        tagButton.classList.add('active');
-                    }
-                    filterAndRenderNotes();
-                });
-            } else {
-                alert("Please enter a tag name.");
-            }
-        });
-    }
-
-    if (userTagsGrid) {
-        userTagsGrid.addEventListener('click', function(event) {
-            if (event.target.classList.contains('tag-btn')) {
-                const clickedTag = event.target.dataset.tag;
-                if (activeTag === clickedTag) {
-                    activeTag = null;
-                    event.target.classList.remove('active');
-                } else {
-                    document.querySelectorAll('.tag-btn.active').forEach(btn => btn.classList.remove('active'));
-                    activeTag = clickedTag;
-                    event.target.classList.add('active');
-                }
-                filterAndRenderNotes();
-            }
-        });
-    }
-    
-
-    // create note form
-    const createNoteForm = document.getElementById('createNoteForm');
-    if (createNoteForm) {
-        createNoteForm.addEventListener('submit', function(event) {
-            event.preventDefault();
             const title = document.getElementById('noteTitle').value;
             const content = document.getElementById('noteContent').value;
-            const tagsInput = document.getElementById('noteTags').value;
+            const tags = document.getElementById('noteTags').value.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
             const visibility = document.getElementById('noteVisibility').value;
+            const isAnonymous = document.getElementById('postAnonymouslyCheckbox')?.checked || false;
 
-            const tags = tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
-
-            const newNoteId = `note-${Date.now()}`;
-            const newNote = {
-                id: newNoteId,
+            db.collection('notes').add({
                 title: title,
                 content: content,
-                views: 0,
+                tags: tags,
                 visibility: visibility,
-                tags: tags
-            };
-            allNotes.push(newNote);
-
-            alert("Note created successfully! (This is a demo, not actually saved to a server)");
-            window.location.href = 'dashboard.html';
+                userId: user.uid,
+                authorEmail: user.email,
+                authorUsername: authorUsername,
+                isAnonymous: isAnonymous,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            })
+                .then(() => {
+                    alert('Note created successfully!');
+                    window.location.href = 'dashboard.html';
+                })
+                .catch(error => {
+                    console.error('Error adding document: ', error);
+                    alert('Error creating note: ' + error.message);
+                });
         });
     }
 
-
-    // view note page
-    const reportNoteBtn = document.getElementById('reportNoteBtn');
-    const reportConfirmSection = document.getElementById('reportConfirmSection');
-    const copyNoteBtn = document.getElementById('copyNoteBtn');
-
-    if (reportNoteBtn && reportConfirmSection) {
-        reportNoteBtn.addEventListener('click', function() {
-            reportConfirmSection.style.display = 'block';
-            reportNoteBtn.style.display = 'none';
-        });
-
-        const confirmReportBtn = reportConfirmSection.querySelector('.confirm-btn');
-        const blockUserBtn = reportConfirmSection.querySelector('.block-btn');
-        const cancelReportBtn = reportConfirmSection.querySelector('.cancel-report-btn');
-
-        if (confirmReportBtn) {
-            confirmReportBtn.addEventListener('click', function() {
-                alert("Note reported! (Demo)");
-                reportConfirmSection.style.display = 'none';
-                reportNoteBtn.style.display = 'block';
-            });
-        }
-        if (blockUserBtn) {
-            blockUserBtn.addEventListener('click', function() {
-                alert("Note reported and user blocked! (Demo)");
-                reportConfirmSection.style.display = 'none';
-                reportNoteBtn.style.display = 'block';
-            });
-        }
-        if (cancelReportBtn) {
-            cancelReportBtn.addEventListener('click', function() {
-                reportConfirmSection.style.display = 'none';
-                reportNoteBtn.style.display = 'block';
-            });
-        }
-    }
-
-    if (copyNoteBtn) {
-        copyNoteBtn.addEventListener('click', function() {
-            alert("Note copied to your dashboard! (Demo)");
-        });
-    }
-
-    const currentPage = window.location.pathname.split('/').pop();
-    const noteId = getUrlParameter('noteId');
-
-    if (noteId && currentPage === 'view_note.html') {
-        const noteData = allNotes.find(note => note.id === noteId);
-
-        const noteTitleDisplay = document.getElementById('noteTitleDisplay');
-        const noteContentDisplay = document.getElementById('noteContentDisplay');
-        const noteTagsDisplay = document.getElementById('noteTagsDisplay');
-
-        if (noteData && noteTitleDisplay && noteContentDisplay) {
-            noteTitleDisplay.textContent = noteData.title;
-            noteContentDisplay.textContent = noteData.content;
-
-            if (noteTagsDisplay && noteData.tags && noteData.tags.length > 0) {
-                noteTagsDisplay.textContent = `Tags: ${noteData.tags.join(', ')}`;
-            } else if (noteTagsDisplay) {
-                noteTagsDisplay.textContent = 'No tags';
-            }
-
-            if (noteData.visibility === 'public' && copyNoteBtn) {
-                copyNoteBtn.style.display = 'inline-block';
-            }
-        } else {
-            if (noteTitleDisplay && noteContentDisplay) {
-                noteTitleDisplay.textContent = "Note Not Found";
-                noteContentDisplay.textContent = "The note you are looking for does not exist or has been deleted.";
-            }
-            if (noteTagsDisplay) {
-                noteTagsDisplay.textContent = "";
-            }
-        }
-    }
-
-
-    // edit note page
     const editNoteForm = document.getElementById('editNoteForm');
     if (editNoteForm) {
-        const editNoteTitle = document.getElementById('editNoteTitle');
-        const editNoteContent = document.getElementById('editNoteContent');
-        const editNoteTags = document.getElementById('editNoteTags');
-        const editNoteVisibility = document.getElementById('editNoteVisibility');
+        const noteId = getUrlParameter('id');
+        if (noteId) {
+            db.collection('notes').doc(noteId).get()
+                .then(doc => {
+                    if (doc.exists) {
+                        const note = doc.data();
+                        document.getElementById('editNoteTitle').value = note.title;
+                        document.getElementById('editNoteContent').value = note.content;
+                        document.getElementById('editNoteTags').value = note.tags ? note.tags.join(', ') : '';
+                        document.getElementById('editNoteVisibility').value = note.visibility;
+                    } else {
+                        alert('Note not found!');
+                        window.location.href = 'dashboard.html';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error getting note for editing: ', error);
+                    alert('Error loading note: ' + error.message);
+                });
 
-        const noteIdToEdit = getUrlParameter('noteId');
-        if (noteIdToEdit) {
-            const noteData = allNotes.find(note => note.id === noteIdToEdit);
-            if (noteData) {
-                editNoteTitle.value = noteData.title;
-                editNoteContent.value = noteData.content;
-                editNoteTags.value = noteData.tags ? noteData.tags.join(', ') : '';
-                editNoteVisibility.value = noteData.visibility;
-            }
-        }
+            editNoteForm.addEventListener('submit', function (event) {
+                event.preventDefault();
+                const title = document.getElementById('editNoteTitle').value;
+                const content = document.getElementById('editNoteContent').value;
+                const tags = document.getElementById('editNoteTags').value.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
+                const visibility = document.getElementById('editNoteVisibility').value;
 
-        editNoteForm.addEventListener('submit', function(event) {
-            event.preventDefault();
-            const updatedTitle = editNoteTitle.value;
-            const updatedContent = editNoteContent.value;
-            const updatedTagsInput = editNoteTags.value;
-            const updatedVisibility = editNoteVisibility.value;
-            const noteIdToEdit = getUrlParameter('noteId');
-
-            const updatedTags = updatedTagsInput.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
-
-            const noteToUpdate = allNotes.find(note => note.id === noteIdToEdit);
-            if (noteToUpdate) {
-                noteToUpdate.title = updatedTitle;
-                noteToUpdate.content = updatedContent;
-                noteToUpdate.tags = updatedTags;
-                noteToUpdate.visibility = updatedVisibility;
-            }
-
-            alert(`Note "${updatedTitle}" saved successfully! (Demo)`);
+                db.collection('notes').doc(noteId).update({
+                    title: title,
+                    content: content,
+                    tags: tags,
+                    visibility: visibility,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                })
+                    .then(() => {
+                        alert('Note updated successfully!');
+                        window.location.href = 'dashboard.html';
+                    })
+                    .catch(error => {
+                        console.error('Error updating note: ', error);
+                        alert('Error updating note: ' + error.message);
+                    });
+            });
+        } else {
+            alert('No note ID provided for editing.');
             window.location.href = 'dashboard.html';
-        });
+        }
     }
-    
+
+    const viewNoteSection = document.querySelector('.view-note-section');
+    if (viewNoteSection) {
+        const noteId = getUrlParameter('id');
+        if (noteId) {
+            db.collection('notes').doc(noteId).get()
+                .then(doc => {
+                    if (doc.exists) {
+                        const note = doc.data();
+                        document.getElementById('noteTitleDisplay').textContent = note.title;
+                        document.getElementById('noteContentDisplay').textContent = note.content;
+                        document.getElementById('noteTagsDisplay').textContent = `Tags: ${note.tags ? note.tags.join(', ') : 'None'}`;
+                        document.getElementById('noteTimestampDisplay').textContent = `Last Updated: ${note.timestamp ? new Date(note.timestamp.toDate()).toLocaleString() : 'N/A'}`;
+                        const displayAuthor = note.isAnonymous ? 'Anonymous' : (note.authorUsername || note.authorEmail || 'Unknown User');
+                        document.getElementById('noteAuthorDisplay').textContent = `Author: ${displayAuthor}`;
+                    } else {
+                        alert('Note not found!');
+                        window.location.href = 'dashboard.html';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error getting note for viewing: ', error);
+                    alert('Error loading note: ' + error.message);
+                });
+        } else {
+            alert('No note ID provided for viewing.');
+            window.location.href = 'dashboard.html';
+        }
+    }
 });
