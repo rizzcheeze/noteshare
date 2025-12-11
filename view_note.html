@@ -24,22 +24,15 @@
                 <h2 id="noteTitleDisplay">Loading Note...</h2>
                 <p id="noteTagsDisplay" class="note-tags-display"></p>
                 <pre id="noteContentDisplay">Note content will appear here.</pre>
-            </div>
-
-            <div class="note-actions-bottom">
-                <button id="copyNoteBtn" class="action-btn">Copy Note to Dashboard</button>
-                <button id="reportNoteBtn" class="action-btn report-btn">Report this note?</button>
-            </div>
-
-            <div id="reportConfirmSection" class="report-confirm-section" style="display:none;">
-                <p>Are you sure you want to report this note?</p>
-                <button class="confirm-btn">Confirm</button>
-                <button class="block-btn">Confirm and block user</button>
-                <button class="cancel-report-btn">Cancel</button>
+                <p id="noteTimestampDisplay" class="note-info"></p>
+                <p id="noteAuthorDisplay" class="note-author"></p>
             </div>
         </div>
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <script src="script.js"></script>
 </body>
 
